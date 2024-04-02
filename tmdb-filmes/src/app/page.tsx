@@ -9,7 +9,6 @@ export default function Home() {
       <h1>TMDB Filmes</h1>
       <Table />
       
-
     </div>
     
     );
