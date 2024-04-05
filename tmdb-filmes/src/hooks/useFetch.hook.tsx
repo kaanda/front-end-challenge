@@ -1,42 +1,41 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Movie from "../interfaces/movie.interface";
+import { movieListPopular } from "../service/movie-popular.service";
 
-interface ApiResponse {
-    results: Movie[];
-    page: number;
-    total_pages: number;
-}
+export default function useFetch(apiKey: string, initialPage: number):{ 
+    movies: Movie[] | null | undefined, 
+    isFetching: boolean, 
+    nextPage: () => void, 
+    prevPage: () => void, 
+    currentPage: number | undefined, 
+    totalPages: number | undefined,
+    goToPage: (page: number) => void,
+    fetchData: () => void} {
 
-export default function useFetch(url: string, initialPage: number):{ 
-    movies: Movie[] | null, isFetching: boolean, nextPage: () => void, 
-    prevPage: () => void, currentPage: number, totalPages: number,
-    goToPage: (page: number) => void } {
-        
-    const [movies, setMovies] = useState<Movie[] | null>(null);
+    const [movies, setMovies] = useState<Movie[] | null | undefined>(null);
     const [isFetching, setIsFetching] = useState(true);
     const [currentPage, setCurrentPage] = useState(initialPage);
-    const [totalPages, setTotalPages] = useState(0);
+    const [totalPages, setTotalPages] = useState<number | undefined>(0);
+    const apiUrl = 'https://api.themoviedb.org/3/movie/popular';
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.get<ApiResponse>(`${url}&page=${currentPage}`);
-                setMovies(response.data.results);
-                setTotalPages(response.data.total_pages);
-            } catch (error) {
-                console.error("Erro ao buscar dados:", error);
-            } finally {
-                setIsFetching(false);
-            }
-        };
-
-        fetchData();
-    }, [url, currentPage]);
+   
+    const fetchData = async () => {
+        try {
+            const response = await movieListPopular(apiKey, currentPage);
+            setMovies(response?.results);
+            setTotalPages(response?.total_pages);
+        } catch (error) {
+            console.error("Erro ao buscar dados:", error);
+        } finally {
+            setIsFetching(false);
+        }
+    };    
 
     const nextPage = () => {
-        if (currentPage < totalPages) {
+        if (totalPages && currentPage < totalPages) {
             setCurrentPage(currentPage + 1);
+        }else {
+            setCurrentPage(1);
         }
     };
 
@@ -47,8 +46,10 @@ export default function useFetch(url: string, initialPage: number):{
     };
 
     const goToPage = (page: number) => {
-        setCurrentPage(page);
+        if (totalPages && page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
     };
 
-    return { movies, isFetching, nextPage, prevPage, currentPage, totalPages, goToPage };
+    return { movies, isFetching, nextPage, prevPage, currentPage, totalPages, goToPage, fetchData };
 }
